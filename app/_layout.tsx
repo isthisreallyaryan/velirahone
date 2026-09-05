@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   useFonts,
   Outfit_400Regular,
@@ -15,7 +16,7 @@ import {
   PlusJakartaSans_600SemiBold,
 } from '@expo-google-fonts/plus-jakarta-sans';
 
-// Keep the splash screen visible while fonts and global state initialize
+// Hold the native splash screen until fonts are parsed to prevent unstyled text flashes
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
@@ -30,35 +31,33 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    // If the font fails to load, throw an error to trigger an error boundary
     if (fontError) throw fontError;
 
-    // Once fonts are successfully loaded, unmount the splash screen gracefully
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded, fontError]);
 
   if (!fontsLoaded && !fontError) {
-    return null; // Return null to let the native splash screen persist
+    return null;
   }
 
   return (
-    <>
-      {/* 
-        Strict Light Mode enforcement.
-        The Luminous Glass aesthetic requires a dark status bar text over the Alabaster canvas.
-      */}
+    // GestureHandlerRootView is strictly required at the root for react-native-reanimated spring physics
+    <GestureHandlerRootView style={{ flex: 1, backgroundColor: '#FAFAFA' }}>
+      {/* Enforce dark status bar icons over the Gallery White canvas */}
       <StatusBar style="dark" translucent />
       
-      {/* 
-        The primary routing stack.
-        (tabs) serves as the authenticated core experience.
-        (auth) manages the sign-in and spatial 3D onboarding flows.
-      */}
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: '#F8FAFC' } }}>
-        <Stack.Screen name="(auth)" options={{ animation: 'fade' }} />
-        <Stack.Screen name="(tabs)" options={{ animation: 'fade' }} />
+      <Stack 
+        screenOptions={{ 
+          headerShown: false, 
+          // Applies the Gallery White base across all stack screens
+          contentStyle: { backgroundColor: '#FAFAFA' },
+          animation: 'fade'
+        }}
+      >
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
         <Stack.Screen 
           name="arena/[id]" 
           options={{ 
@@ -73,6 +72,6 @@ export default function RootLayout() {
           }} 
         />
       </Stack>
-    </>
+    </GestureHandlerRootView>
   );
 }
