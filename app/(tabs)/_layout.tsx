@@ -10,8 +10,8 @@ export default function TabLayout() {
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarActiveTintColor: '#0F172A', // Deep Ink for active states
-        tabBarInactiveTintColor: '#94A3B8', // Muted Slate for inactive
+        tabBarActiveTintColor: '#111827', // Deep Onyx for active states
+        tabBarInactiveTintColor: '#6B7280', // Flint for inactive
         tabBarStyle: {
           position: 'absolute',
           bottom: Platform.OS === 'ios' ? 32 : 24,
@@ -22,12 +22,14 @@ export default function TabLayout() {
           borderTopWidth: 0,
           backgroundColor: 'transparent',
         },
-        // The Luminous Glass background
+        // The Organic Glass background layer
         tabBarBackground: () => (
-          <View className="flex-1 rounded-[32px] overflow-hidden border border-[rgba(255,255,255,0.90)] bg-[rgba(255,255,255,0.4)] shadow-lg shadow-[#0F172A]/5">
+          <View 
+            className="flex-1 rounded-[32px] overflow-hidden border border-[rgba(255,255,255,0.90)] bg-[rgba(255,255,255,0.50)] shadow-lg shadow-[#111827]/5"
+          >
             <BlurView 
               tint="light" 
-              intensity={60} 
+              intensity={70} 
               style={StyleSheet.absoluteFill} 
             />
           </View>
@@ -69,4 +71,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
