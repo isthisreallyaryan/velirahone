@@ -3,94 +3,116 @@ import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 
-export interface AuthUser {
+export interface IdeologicalVector {
+  fiscal: number;
+  social: number;
+  authority: number;
+  welfare: number;
+}
+
+export interface HandshakeConnection {
   id: string;
   pseudonym: string;
-  realName?: string;
+  initials: string;
+  mutualPods: number;
+  alignmentScore: number;
+}
+
+export interface UserProfile {
+  id: string;
+  pseudonym: string;
+  realName: string;
+  location: string;
   isKYCVerified: boolean;
 }
 
-interface AuthState {
-  user: AuthUser | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  error: string | null;
+interface UserState {
+  profile: UserProfile | null;
+  valuesVector: IdeologicalVector;
+  factCheckTokens: number;
+  friends: HandshakeConnection[];
   
   // Actions
-  signIn: (pseudonym: string, masterKey: string) => Promise<void>;
-  signOut: () => Promise<void>;
-  clearError: () => void;
+  useToken: () => boolean;
+  replenishTokens: () => void;
+  updateVector: (axis: keyof IdeologicalVector, value: number) => void;
+  addHandshake: (friend: HandshakeConnection) => void;
+  initializeProfile: () => void;
 }
 
-export const useAuthStore = create<AuthState>()(
+export const useUserStore = create<UserState>()(
   persist(
-    (set) => ({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-      error: null,
+    (set, get) => ({
+      profile: null,
+      
+      // Default continuous coordinates
+      valuesVector: {
+        fiscal: 0.51,
+        social: 0.73,
+        authority: 0.42,
+        welfare: 0.65,
+      },
+      
+      factCheckTokens: 5,
+      
+      // Seeded high-integrity network
+      friends: [
+        { id: 'usr_8x7b', pseudonym: 'CipherWeaver', initials: 'CW', mutualPods: 3, alignmentScore: 82 },
+        { id: 'usr_9x2c', pseudonym: 'Komal', initials: 'K', mutualPods: 7, alignmentScore: 94 },
+      ],
 
-      signIn: async (pseudonym: string, masterKey: string) => {
-        set({ isLoading: true, error: null });
-        
-        try {
-          // Simulating a secure cryptographic handshake with the backend (e.g., Supabase)
-          await new Promise((resolve) => setTimeout(resolve, 1200));
-
-          if (masterKey !== 'cipher') {
-            throw new Error('Invalid master key. Access denied.');
-          }
-
-          const mockUser: AuthUser = {
-            id: 'usr_9x8a7b6c5',
-            pseudonym: pseudonym || 'NeonMango',
-            realName: 'Encrypted Entity',
-            isKYCVerified: true,
-          };
-
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          
-          set({
-            user: mockUser,
-            isAuthenticated: true,
-            isLoading: false,
-            error: null,
-          });
-        } catch (error: any) {
-          await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-          set({ 
-            error: error.message || 'Authentication failed.',
-            isLoading: false 
-          });
+      useToken: () => {
+        const currentTokens = get().factCheckTokens;
+        if (currentTokens > 0) {
+          set({ factCheckTokens: currentTokens - 1 });
+          // Haptic feedback handled at the component level for precise timing
+          return true;
         }
+        return false;
       },
 
-      signOut: async () => {
-        set({ isLoading: true });
-        
-        // Simulating secure token destruction
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-        
+      replenishTokens: () => {
+        set({ factCheckTokens: 5 });
+      },
+
+      updateVector: (axis, value) => {
+        set((state) => ({
+          valuesVector: {
+            ...state.valuesVector,
+            [axis]: value,
+          }
+        }));
+      },
+
+      addHandshake: (friend) => {
+        set((state) => ({
+          friends: [friend, ...state.friends]
+        }));
+      },
+
+      initializeProfile: () => {
+        // Seeding encrypted identity verified via secure KYC
         set({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-          error: null,
+          profile: {
+            id: 'usr_9x8a7b6c5',
+            pseudonym: 'NeonMango',
+            realName: 'Vijender Singh',
+            location: 'Hyderabad',
+            isKYCVerified: true,
+          }
         });
-      },
-
-      clearError: () => set({ error: null }),
+      }
     }),
     {
-      name: 'arena-auth-storage',
+      name: 'arena-user-storage',
       storage: createJSONStorage(() => AsyncStorage),
-      // Only persist the session data, not the loading or error states
+      // Only persist the non-ephemeral state
       partialize: (state) => ({ 
-        user: state.user, 
-        isAuthenticated: state.isAuthenticated 
+        valuesVector: state.valuesVector,
+        factCheckTokens: state.factCheckTokens,
+        friends: state.friends,
+        profile: state.profile
       }),
     }
   )
 );
-
