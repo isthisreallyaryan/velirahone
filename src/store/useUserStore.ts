@@ -1,83 +1,77 @@
 import { create } from 'zustand';
 import * as Haptics from 'expo-haptics';
 
-export interface ChatMessage {
+export interface ArenaMessage {
   id: string;
   senderId: string;
-  pseudonym: string;
+  pseudonym?: string;
   content: string;
   status: 'none' | 'verified' | 'challenged' | 'debunked';
   timestamp: string;
-  type?: 'text' | 'voice' | 'dilemma_reference';
+  type: 'text' | 'voice' | 'dilemma_reference';
 }
 
-export interface ArenaPod {
+export interface DebatePod {
   id: string;
   topic: string;
-  heatLevel: number;
+  heatLevel: number; // 0 to 100
   hoursRemaining: number;
   participants: string[];
 }
 
 interface ArenaState {
-  activePods: ArenaPod[];
-  messages: ChatMessage[];
+  activePods: DebatePod[];
+  messages: ArenaMessage[];
   isConnecting: boolean;
   
   // Actions
-  connectToPod: (podId: string) => Promise<void>;
+  joinPod: (podId: string) => Promise<void>;
   sendMessage: (podId: string, content: string) => void;
-  challengeMessage: (messageId: string) => Promise<void>;
-  verifyMessage: (messageId: string) => Promise<void>;
+  challengeMessage: (messageId: string) => void;
+  updateHeatLevel: (podId: string, newHeat: number) => void;
 }
 
-export const useArenaStore = create<ArenaState>((set, get) => ({
+export const useArenaStore = create<ArenaState>()((set, get) => ({
   activePods: [
     {
       id: 'pod_1',
       topic: 'Universal Basic Income is structurally unsustainable.',
       heatLevel: 85,
       hoursRemaining: 14,
-      participants: ['me', 'usr_8x7b', 'usr_3b2a'],
+      participants: ['usr_1', 'usr_2', 'usr_3', 'usr_9x8a7b6c5'],
     }
   ],
   messages: [],
   isConnecting: false,
 
-  connectToPod: async (podId) => {
+  joinPod: async (podId) => {
     set({ isConnecting: true });
     
-    // Simulating a secure websocket handshake to join the 6-person room
+    // Simulate WebSocket handshake
     await new Promise((resolve) => setTimeout(resolve, 800));
+    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     
+    // Hydrate initial messages
     set({
       isConnecting: false,
       messages: [
-        { 
-          id: 'm1', 
-          senderId: 'usr_8x7b', 
-          pseudonym: 'CipherWeaver', 
-          content: 'UBI ignores the velocity of money. If you inject baseline capital without output, you just inflate the floor.', 
-          status: 'none', 
-          timestamp: '10:42 AM' 
-        },
-        { 
-          id: 'm2', 
-          senderId: 'me', 
-          pseudonym: 'NeonMango', 
-          content: 'But you are assuming supply remains entirely static. Automation is already decoupling labor from production.', 
-          status: 'none', 
-          timestamp: '10:44 AM' 
+        {
+          id: 'msg_1',
+          senderId: 'other',
+          pseudonym: 'CipherWeaver',
+          content: 'UBI fundamentally removes the market incentive for baseline labor.',
+          status: 'none',
+          timestamp: '10:42 AM',
+          type: 'text'
         }
       ]
     });
   },
 
   sendMessage: (podId, content) => {
-    const newMessage: ChatMessage = {
-      id: Date.now().toString(),
+    const newMessage: ArenaMessage = {
+      id: `msg_${Date.now()}`,
       senderId: 'me',
-      pseudonym: 'NeonMango', // In production, this pulls dynamically from useUserStore
       content,
       status: 'none',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
@@ -87,26 +81,22 @@ export const useArenaStore = create<ArenaState>((set, get) => ({
     set((state) => ({
       messages: [...state.messages, newMessage]
     }));
+    
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   },
 
-  challengeMessage: async (messageId) => {
-    // Firing a heavy haptic strike immediately anchors the user's action
-    await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
-    
+  challengeMessage: (messageId) => {
     set((state) => ({
-      messages: state.messages.map(m => 
-        m.id === messageId ? { ...m, status: 'challenged' } : m
+      messages: state.messages.map((msg) => 
+        msg.id === messageId ? { ...msg, status: 'challenged' } : msg
       )
     }));
   },
 
-  verifyMessage: async (messageId) => {
-    // Rewarding a successful citation with a crisp success vibration
-    await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    
+  updateHeatLevel: (podId, newHeat) => {
     set((state) => ({
-      messages: state.messages.map(m => 
-        m.id === messageId ? { ...m, status: 'verified' } : m
+      activePods: state.activePods.map((pod) =>
+        pod.id === podId ? { ...pod, heatLevel: newHeat } : pod
       )
     }));
   }
